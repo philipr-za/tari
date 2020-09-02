@@ -477,7 +477,6 @@ mod test {
 
     #[test]
     fn test_chain_metadata_service_api() {
-        let _ = env_logger::try_init();
         let mut rt = Runtime::new().unwrap();
         let (liveness_handle, liveness_mock, _) = create_p2p_liveness_mock(1);
         let liveness_mock_state = liveness_mock.get_mock_state();
@@ -530,7 +529,7 @@ mod test {
         rt.block_on(liveness_mock_state.publish_event(LivenessEvent::ReceivedPong(Box::new(pong_event2))))
             .unwrap();
         let mut event_stream = handle.get_event_stream();
-        let events = rt.block_on(async { collect_stream!(event_stream, take = 1, timeout = Duration::from_secs(10)) });
+        let events = rt.block_on(async { collect_stream!(event_stream, take = 1, timeout = Duration::from_secs(60)) });
         assert_eq!(events.len(), 1);
 
         assert!(rt.block_on(handle.full_round_of_metadata_received()).unwrap());
