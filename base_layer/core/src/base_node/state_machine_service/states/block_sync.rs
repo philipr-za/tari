@@ -22,15 +22,17 @@
 use crate::{
     base_node::{
         comms_interface::{Broadcast, CommsInterfaceError},
-        state_machine::BaseNodeStateMachine,
-        states::{
-            helpers::{ban_all_sync_peers, ban_sync_peer, request_headers, select_sync_peer},
-            sync_peers::SyncPeer,
-            ForwardBlockSyncInfo,
-            Listening,
-            StateEvent,
-            StatusInfo,
-            SyncPeers,
+        state_machine_service::{
+            states::{
+                helpers::{ban_all_sync_peers, ban_sync_peer, request_headers, select_sync_peer},
+                sync_peers::SyncPeer,
+                ForwardBlockSyncInfo,
+                Listening,
+                StateEvent,
+                StatusInfo,
+                SyncPeers,
+            },
+            BaseNodeStateMachine,
         },
     },
     blocks::{blockheader::BlockHeader, Block},
@@ -46,7 +48,7 @@ use tari_comms::{connectivity::ConnectivityError, peer_manager::PeerManagerError
 use tari_crypto::tari_utilities::{hex::Hex, Hashable};
 use thiserror::Error;
 
-const LOG_TARGET: &str = "c::bn::states::block_sync";
+const LOG_TARGET: &str = "c::bn::state_machine_service::states::block_sync";
 
 // The maximum number of retry attempts a node can perform to request a particular block from remote nodes.
 const MAX_METADATA_REQUEST_RETRY_ATTEMPTS: usize = 3;

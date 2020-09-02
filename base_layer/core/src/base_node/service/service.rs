@@ -419,7 +419,7 @@ async fn handle_incoming_request<B: BlockchainBackend + 'static>(
         .await?;
 
     // Determine if we are synced
-    let chain_metadata_received = chain_metadata_handle.full_round_of_metadata_received().await?;
+    // let chain_metadata_received = chain_metadata_handle.full_round_of_metadata_received().await?;
 
     let message = proto::BaseNodeServiceResponse {
         request_key: inner_msg.request_key,

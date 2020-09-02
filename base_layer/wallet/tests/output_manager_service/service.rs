@@ -873,6 +873,7 @@ fn test_startup_utxo_scan() {
                 outputs: vec![invalid_output.clone().as_transaction_output(&factories).unwrap().into()].into(),
             },
         )),
+        is_synced: false,
     };
 
     runtime
@@ -921,6 +922,7 @@ fn test_startup_utxo_scan() {
                 outputs: vec![output1.clone().as_transaction_output(&factories).unwrap().into()].into(),
             },
         )),
+        is_synced: false,
     };
 
     runtime
@@ -940,6 +942,7 @@ fn test_startup_utxo_scan() {
                 outputs: vec![output1.clone().as_transaction_output(&factories).unwrap().into()].into(),
             },
         )),
+        is_synced: false,
     };
 
     runtime
@@ -954,6 +957,7 @@ fn test_startup_utxo_scan() {
         response: Some(BaseNodeResponseProto::TransactionOutputs(
             BaseNodeProto::TransactionOutputs { outputs: vec![].into() },
         )),
+        is_synced: false,
     };
 
     runtime
@@ -1022,6 +1026,7 @@ fn test_startup_utxo_scan() {
         response: Some(BaseNodeResponseProto::TransactionOutputs(
             BaseNodeProto::TransactionOutputs { outputs: vec![].into() },
         )),
+        is_synced: false,
     };
 
     runtime
@@ -1036,6 +1041,7 @@ fn test_startup_utxo_scan() {
         response: Some(BaseNodeResponseProto::TransactionOutputs(
             BaseNodeProto::TransactionOutputs { outputs: vec![].into() },
         )),
+        is_synced: false,
     };
     runtime
         .block_on(base_node_response_sender.send(create_dummy_message(

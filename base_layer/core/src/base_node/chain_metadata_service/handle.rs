@@ -22,10 +22,7 @@
 
 use crate::{base_node::chain_metadata_service::error::ChainMetadataSyncError, chain_storage::ChainMetadata};
 use futures::{stream::Fuse, StreamExt};
-use std::{
-    fmt::{Display, Error, Formatter},
-    time::Instant,
-};
+use std::fmt::{Display, Error, Formatter};
 use tari_broadcast_channel::Subscriber;
 use tari_comms::peer_manager::NodeId;
 use tari_service_framework::reply_channel::SenderService;

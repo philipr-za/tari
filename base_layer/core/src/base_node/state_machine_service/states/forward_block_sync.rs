@@ -22,8 +22,10 @@
 use crate::{
     base_node::{
         comms_interface::{Broadcast, CommsInterfaceError},
-        states::{sync_peers::SyncPeer, StateEvent, StatusInfo},
-        BaseNodeStateMachine,
+        state_machine_service::{
+            states::{sync_peers::SyncPeer, StateEvent, StatusInfo},
+            BaseNodeStateMachine,
+        },
     },
     blocks::BlockHeader,
     chain_storage::{BlockchainBackend, BlockchainDatabase, ChainStorageError},
@@ -35,7 +37,7 @@ use std::cmp;
 use tari_comms::peer_manager::NodeId;
 use tari_crypto::tari_utilities::{hex::Hex, Hashable};
 
-const LOG_TARGET: &str = "c::bn::states::block_sync";
+const LOG_TARGET: &str = "c::bn::state_machine_service::states::block_sync";
 
 // The maximum number of retry attempts a node can perform to request a particular block from remote nodes.
 const MAX_BLOCK_REQUEST_RETRY_ATTEMPTS: usize = 5;

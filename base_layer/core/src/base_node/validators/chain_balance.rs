@@ -33,7 +33,7 @@ use crate::{
 use log::*;
 use tari_crypto::commitment::HomomorphicCommitmentFactory;
 
-const LOG_TARGET: &str = "c::bn::states::horizon_state_sync::chain_balance";
+const LOG_TARGET: &str = "c::bn::state_machine_service::states::horizon_state_sync::chain_balance";
 
 /// Validate that the chain balances at a given height.
 pub struct ChainBalanceValidator<B> {

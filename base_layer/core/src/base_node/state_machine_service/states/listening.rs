@@ -23,8 +23,10 @@
 use crate::{
     base_node::{
         chain_metadata_service::{ChainMetadataEvent, PeerChainMetadata},
-        states::{StateEvent, StateEvent::FatalError, StatusInfo, SyncPeers, SyncStatus, Waiting},
-        BaseNodeStateMachine,
+        state_machine_service::{
+            states::{StateEvent, StateEvent::FatalError, StatusInfo, SyncPeers, SyncStatus, Waiting},
+            BaseNodeStateMachine,
+        },
     },
     chain_storage::{async_db, BlockchainBackend, ChainMetadata},
     proof_of_work::Difficulty,
@@ -33,7 +35,7 @@ use futures::stream::StreamExt;
 use log::*;
 use std::fmt::{Display, Formatter};
 
-const LOG_TARGET: &str = "c::bn::states::listening";
+const LOG_TARGET: &str = "c::bn::state_machine_service::states::listening";
 
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 /// This struct contains info that is use full for external viewing of state info
@@ -149,7 +151,7 @@ fn best_metadata(metadata_list: &[PeerChainMetadata]) -> ChainMetadata {
 
 /// Given a local and the network chain state respectively, figure out what synchronisation state we should be in.
 fn determine_sync_mode(local: &ChainMetadata, network: ChainMetadata, sync_peers: SyncPeers) -> SyncStatus {
-    use crate::base_node::states::SyncStatus::*;
+    use crate::base_node::state_machine_service::states::SyncStatus::*;
     match network.accumulated_difficulty {
         None => {
             info!(

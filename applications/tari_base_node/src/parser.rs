@@ -22,7 +22,7 @@
 
 use super::LOG_TARGET;
 use crate::{
-    builder::NodeContainer,
+    builder::BaseNodeContext,
     table::Table,
     utils,
     utils::{format_duration_basic, format_naive_datetime},
@@ -64,7 +64,7 @@ use tari_comms::{
 };
 use tari_comms_dht::{envelope::NodeDestination, DhtDiscoveryRequester};
 use tari_core::{
-    base_node::{states::StatusInfo, LocalNodeCommsInterface},
+    base_node::{state_machine_service::states::StatusInfo, LocalNodeCommsInterface},
     blocks::BlockHeader,
     mempool::service::LocalMempoolService,
     mining::MinerInstruction,
@@ -184,7 +184,7 @@ impl Hinter for Parser {
 
 impl Parser {
     /// creates a new parser struct
-    pub fn new(executor: runtime::Handle, ctx: &NodeContainer, config: &GlobalConfig) -> Self {
+    pub fn new(executor: runtime::Handle, ctx: &BaseNodeContext, config: &GlobalConfig) -> Self {
         Parser {
             executor,
             wallet_node_identity: ctx.wallet_node_identity(),

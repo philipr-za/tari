@@ -33,7 +33,7 @@ use std::{sync::atomic::Ordering, time::Duration};
 use tari_broadcast_channel::{bounded, Publisher, Subscriber};
 use tari_comms_dht::domain_message::OutboundDomainMessage;
 use tari_core::{
-    base_node::{service::BaseNodeServiceConfig, states::StateEvent},
+    base_node::{service::BaseNodeServiceConfig, state_machine_service::states::StateEvent},
     chain_storage::BlockchainDatabaseConfig,
     consensus::{ConsensusManagerBuilder, Network},
     mempool::{MempoolServiceConfig, TxStorageResponse},

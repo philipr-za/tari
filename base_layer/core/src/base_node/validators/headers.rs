@@ -30,7 +30,7 @@ use crate::{
 use log::*;
 use tari_crypto::tari_utilities::{epoch_time::EpochTime, hex::Hex, Hashable};
 
-const LOG_TARGET: &str = "c::bn::states::horizon_state_sync::headers";
+const LOG_TARGET: &str = "c::bn::state_machine_service::states::horizon_state_sync::headers";
 
 pub struct HeaderValidator<B> {
     rules: ConsensusManager,

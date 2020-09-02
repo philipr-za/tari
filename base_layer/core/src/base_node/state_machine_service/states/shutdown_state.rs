@@ -19,38 +19,26 @@
 // SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 // WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 // USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
 
-use tari_broadcast_channel::Subscriber;
-use tari_core::{
-    base_node::{state_machine_service::states::StateEvent, LocalNodeCommsInterface},
-    consensus::ConsensusManager,
-    mempool::MempoolStateEvent,
-    mining::Miner,
-};
-use tari_service_framework::handles::ServiceHandles;
-use tari_shutdown::ShutdownSignal;
+use log::*;
+use std::fmt;
 
-/// Builds the miner for the base node
-/// ## Parameters
-/// `handles` - Handles to the base node services
-/// `kill_signal` - Signal to stop the miner
-/// `event_stream` - Message stream of the publish-subscribe message system
-/// `consensus_manager`- The rules for the blockchain
-/// `num_threads` - The number of threads on which to run the miner
-pub fn build_miner<H: AsRef<ServiceHandles>>(
-    handles: H,
-    kill_signal: ShutdownSignal,
-    node_event_stream: Subscriber<StateEvent>,
-    mempool_event_stream: Subscriber<MempoolStateEvent>,
-    consensus_manager: ConsensusManager,
-    num_threads: usize,
-) -> Miner
-{
-    let handles = handles.as_ref();
-    let node_local_interface = handles.get_handle::<LocalNodeCommsInterface>().unwrap();
-    let mut miner = Miner::new(kill_signal, consensus_manager, &node_local_interface, num_threads);
-    miner.subscribe_to_node_state_events(node_event_stream);
-    miner.subscribe_to_mempool_state_events(mempool_event_stream);
-    miner
+const LOG_TARGET: &str = "c::bn::state_machine_service::states::shutdown_state";
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Shutdown {
+    reason: String,
+}
+
+impl Shutdown {
+    pub fn with_reason(reason: String) -> Self {
+        info!(target: LOG_TARGET, "Node shutdown state: {}", reason);
+        Self { reason }
+    }
+}
+
+impl fmt::Display for Shutdown {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.reason)
+    }
 }

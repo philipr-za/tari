@@ -44,24 +44,27 @@ use helpers::{
 };
 use rand::{rngs::OsRng, RngCore};
 use std::{thread, time::Duration};
+use tari_broadcast_channel::{bounded, Publisher, Subscriber};
 use tari_core::{
     base_node::{
         chain_metadata_service::PeerChainMetadata,
         comms_interface::Broadcast,
         service::BaseNodeServiceConfig,
-        states::{
-            BestChainMetadataBlockSyncInfo,
-            BlockSyncConfig,
-            HorizonSyncConfig,
-            Listening,
-            StateEvent,
-            SyncPeer,
-            SyncPeerConfig,
-            SyncStatus,
-            SyncStatus::Lagging,
+        state_machine_service::{
+            states::{
+                BestChainMetadataBlockSyncInfo,
+                BlockSyncConfig,
+                HorizonSyncConfig,
+                Listening,
+                StateEvent,
+                SyncPeer,
+                SyncPeerConfig,
+                SyncStatus,
+                SyncStatus::Lagging,
+            },
+            BaseNodeStateMachine,
+            BaseNodeStateMachineConfig,
         },
-        BaseNodeStateMachine,
-        BaseNodeStateMachineConfig,
         SyncValidators,
     },
     chain_storage::BlockchainDatabaseConfig,
@@ -110,6 +113,8 @@ fn test_listening_lagging() {
         temp_dir.path().to_str().unwrap(),
     );
     let shutdown = Shutdown::new();
+    let (state_change_event_publisher, _state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
     let mut alice_state_machine = BaseNodeStateMachine::new(
         &alice_node.blockchain_db,
         &alice_node.local_nci,
@@ -120,6 +125,8 @@ fn test_listening_lagging() {
         BaseNodeStateMachineConfig::default(),
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        state_change_event_publisher,
+        status_event_publisher,
     );
     wait_until_online(&mut runtime, &[&alice_node, &bob_node]);
 
@@ -177,6 +184,8 @@ fn test_event_channel() {
     let db = create_mem_db(&consensus_manager);
     let mut shutdown = Shutdown::new();
     let mut mock = MockChainMetadata::new();
+    let (state_change_event_publisher, state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
     let state_machine = BaseNodeStateMachine::new(
         &db,
         &node.local_nci,
@@ -187,8 +196,10 @@ fn test_event_channel() {
         BaseNodeStateMachineConfig::default(),
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        status_event_publisher,
+        state_change_event_publisher,
     );
-    let rx = state_machine.get_state_change_event_stream();
+    let rx = state_change_event_subscriber;
 
     runtime.spawn(state_machine.run());
 
@@ -256,6 +267,8 @@ fn test_block_sync() {
         sync_peer_config: SyncPeerConfig::default(),
     };
     let shutdown = Shutdown::new();
+    let (state_change_event_publisher, _state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
     let mut alice_state_machine = BaseNodeStateMachine::new(
         &alice_node.blockchain_db,
         &alice_node.local_nci,
@@ -266,6 +279,8 @@ fn test_block_sync() {
         state_machine_config,
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        state_change_event_publisher,
+        status_event_publisher,
     );
 
     runtime.block_on(async {
@@ -344,6 +359,8 @@ fn test_lagging_block_sync() {
         sync_peer_config: SyncPeerConfig::default(),
     };
     let shutdown = Shutdown::new();
+    let (state_change_event_publisher, _state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
     let mut alice_state_machine = BaseNodeStateMachine::new(
         &alice_node.blockchain_db,
         &alice_node.local_nci,
@@ -354,6 +371,8 @@ fn test_lagging_block_sync() {
         state_machine_config,
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        state_change_event_publisher,
+        status_event_publisher,
     );
 
     runtime.block_on(async {
@@ -446,6 +465,8 @@ fn test_block_sync_recovery() {
         sync_peer_config: SyncPeerConfig::default(),
     };
     let shutdown = Shutdown::new();
+    let (state_change_event_publisher, _state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
     let mut alice_state_machine = BaseNodeStateMachine::new(
         &alice_node.blockchain_db,
         &alice_node.local_nci,
@@ -456,6 +477,8 @@ fn test_block_sync_recovery() {
         state_machine_config,
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        state_change_event_publisher,
+        status_event_publisher,
     );
 
     runtime.block_on(async {
@@ -548,6 +571,8 @@ fn test_forked_block_sync() {
         sync_peer_config: SyncPeerConfig::default(),
     };
     let shutdown = Shutdown::new();
+    let (state_change_event_publisher, _state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
     let mut alice_state_machine = BaseNodeStateMachine::new(
         &alice_node.blockchain_db,
         &alice_node.local_nci,
@@ -558,6 +583,8 @@ fn test_forked_block_sync() {
         state_machine_config,
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        state_change_event_publisher,
+        status_event_publisher,
     );
 
     runtime.block_on(async {
@@ -694,6 +721,9 @@ fn test_sync_peer_banning() {
         sync_peer_config: SyncPeerConfig::default(),
     };
     let shutdown = Shutdown::new();
+    let (state_change_event_publisher, _state_change_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
+    let (status_event_publisher, _status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4);
+
     let mut alice_state_machine = BaseNodeStateMachine::new(
         &alice_node.blockchain_db,
         &alice_node.local_nci,
@@ -704,6 +734,8 @@ fn test_sync_peer_banning() {
         state_machine_config,
         SyncValidators::new(MockValidator::new(true), MockValidator::new(true)),
         shutdown.to_signal(),
+        state_change_event_publisher,
+        status_event_publisher,
     );
 
     runtime.block_on(async {
