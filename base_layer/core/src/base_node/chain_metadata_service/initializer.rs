@@ -27,7 +27,12 @@ use log::*;
 use std::future::Future;
 use tari_broadcast_channel as broadcast_channel;
 use tari_p2p::services::liveness::LivenessHandle;
-use tari_service_framework::{handles::ServiceHandlesFuture, ServiceInitializationError, ServiceInitializer};
+use tari_service_framework::{
+    handles::ServiceHandlesFuture,
+    reply_channel,
+    ServiceInitializationError,
+    ServiceInitializer,
+};
 use tari_shutdown::ShutdownSignal;
 use tokio::runtime;
 
@@ -47,7 +52,9 @@ impl ServiceInitializer for ChainMetadataServiceInitializer {
     ) -> Self::Future
     {
         let (publisher, subscriber) = broadcast_channel::bounded(BROADCAST_EVENT_BUFFER_SIZE, 5);
-        let handle = ChainMetadataHandle::new(subscriber);
+        let (sender, receiver) = reply_channel::unbounded();
+
+        let handle = ChainMetadataHandle::new(sender, subscriber);
         handles_fut.register(handle);
 
         executor.spawn(async move {
@@ -61,7 +68,7 @@ impl ServiceInitializer for ChainMetadataServiceInitializer {
                 .get_handle::<LocalNodeCommsInterface>()
                 .expect("LocalNodeCommsInterface required to initialize ChainStateSyncService");
 
-            let service_run = ChainMetadataService::new(liveness, base_node, publisher).run();
+            let service_run = ChainMetadataService::new(liveness, base_node, publisher, receiver).run();
             pin_mut!(service_run);
             select(service_run, shutdown).await;
             info!(target: LOG_TARGET, "ChainMetadataService has shut down");

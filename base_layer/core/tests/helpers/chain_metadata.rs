@@ -25,11 +25,19 @@ use futures::SinkExt;
 use tari_broadcast_channel::{bounded, Publisher, Subscriber};
 use tari_comms::peer_manager::NodeId;
 use tari_core::{
-    base_node::chain_metadata_service::{ChainMetadataEvent, ChainMetadataHandle, PeerChainMetadata},
+    base_node::chain_metadata_service::{
+        ChainMetadataEvent,
+        ChainMetadataHandle,
+        ChainMetadataServiceRequest,
+        ChainMetadataServiceResponse,
+        ChainMetadataSyncError,
+        PeerChainMetadata,
+    },
     chain_storage::ChainMetadata,
     proof_of_work::Difficulty,
 };
 use tari_crypto::{common::Blake256, tari_utilities::ByteArray};
+use tari_service_framework::{reply_channel, reply_channel::SenderService};
 
 /// Create a mock Chain Metadata stream.
 ///
@@ -38,16 +46,29 @@ use tari_crypto::{common::Blake256, tari_utilities::ByteArray};
 pub struct MockChainMetadata {
     publisher: Publisher<ChainMetadataEvent>,
     subscriber: Subscriber<ChainMetadataEvent>,
+    request_sender:
+        SenderService<ChainMetadataServiceRequest, Result<ChainMetadataServiceResponse, ChainMetadataSyncError>>,
+    request_receiver: reply_channel::Receiver<
+        ChainMetadataServiceRequest,
+        Result<ChainMetadataServiceResponse, ChainMetadataSyncError>,
+    >,
 }
 
 impl MockChainMetadata {
     pub fn new() -> Self {
         let (publisher, subscriber) = bounded(10, 114);
-        Self { publisher, subscriber }
+        let (request_sender, request_receiver) = reply_channel::unbounded();
+
+        Self {
+            publisher,
+            subscriber,
+            request_sender,
+            request_receiver,
+        }
     }
 
     pub fn chain_metadata_handle(&self) -> ChainMetadataHandle {
-        ChainMetadataHandle::new(self.subscriber.clone())
+        ChainMetadataHandle::new(self.request_sender.clone(), self.subscriber.clone())
     }
 
     pub fn subscriber(&self) -> Subscriber<ChainMetadataEvent> {

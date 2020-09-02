@@ -25,6 +25,8 @@ pub struct ChainMetadata {
 pub struct BaseNodeServiceResponse {
     #[prost(uint64, tag = "1")]
     pub request_key: u64,
+    #[prost(bool, tag = "13")]
+    pub is_synced: bool,
     #[prost(
         oneof = "base_node_service_response::Response",
         tags = "2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"

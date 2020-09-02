@@ -71,7 +71,7 @@ impl Default for BaseNodeStateMachineConfig {
 ///
 /// This struct holds fields that will be used by all the various FSM state instances, including the local blockchain
 /// database and hooks to the p2p network
-pub struct BaseNodeStateMachine<B> {
+pub struct <B> {
     pub(super) db: BlockchainDatabase<B>,
     pub(super) local_node_interface: LocalNodeCommsInterface,
     pub(super) comms: OutboundNodeCommsInterface,

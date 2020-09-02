@@ -28,5 +28,12 @@ mod initializer;
 mod service;
 
 // Public re-exports
-pub use handle::{ChainMetadataEvent, ChainMetadataHandle, PeerChainMetadata};
+pub use error::ChainMetadataSyncError;
+pub use handle::{
+    ChainMetadataEvent,
+    ChainMetadataHandle,
+    ChainMetadataServiceRequest,
+    ChainMetadataServiceResponse,
+    PeerChainMetadata,
+};
 pub use initializer::ChainMetadataServiceInitializer;

@@ -20,11 +20,16 @@
 // WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 // USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-use crate::chain_storage::ChainMetadata;
+use crate::{base_node::chain_metadata_service::error::ChainMetadataSyncError, chain_storage::ChainMetadata};
 use futures::{stream::Fuse, StreamExt};
-use std::fmt::{Display, Error, Formatter};
+use std::{
+    fmt::{Display, Error, Formatter},
+    time::Instant,
+};
 use tari_broadcast_channel::Subscriber;
 use tari_comms::peer_manager::NodeId;
+use tari_service_framework::reply_channel::SenderService;
+use tower_service::Service;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PeerChainMetadata {
@@ -53,14 +58,31 @@ pub enum ChainMetadataEvent {
     PeerChainMetadataReceived(Vec<PeerChainMetadata>),
 }
 
+#[derive(Debug)]
+pub enum ChainMetadataServiceRequest {
+    FullRoundOfMetadataReceived,
+}
+
+pub enum ChainMetadataServiceResponse {
+    FullRoundOfMetadataReceived(bool),
+}
+
 #[derive(Clone)]
 pub struct ChainMetadataHandle {
+    handle: SenderService<ChainMetadataServiceRequest, Result<ChainMetadataServiceResponse, ChainMetadataSyncError>>,
     event_stream: Subscriber<ChainMetadataEvent>,
 }
 
 impl ChainMetadataHandle {
-    pub fn new(event_stream: Subscriber<ChainMetadataEvent>) -> Self {
-        Self { event_stream }
+    pub fn new(
+        handle: SenderService<
+            ChainMetadataServiceRequest,
+            Result<ChainMetadataServiceResponse, ChainMetadataSyncError>,
+        >,
+        event_stream: Subscriber<ChainMetadataEvent>,
+    ) -> Self
+    {
+        Self { handle, event_stream }
     }
 
     pub fn get_event_stream(&self) -> Subscriber<ChainMetadataEvent> {
@@ -69,5 +91,15 @@ impl ChainMetadataHandle {
 
     pub fn get_event_stream_fused(&self) -> Fuse<Subscriber<ChainMetadataEvent>> {
         self.get_event_stream().fuse()
+    }
+
+    pub async fn full_round_of_metadata_received(&mut self) -> Result<bool, ChainMetadataSyncError> {
+        match self
+            .handle
+            .call(ChainMetadataServiceRequest::FullRoundOfMetadataReceived)
+            .await??
+        {
+            ChainMetadataServiceResponse::FullRoundOfMetadataReceived(received) => Ok(received),
+        }
     }
 }

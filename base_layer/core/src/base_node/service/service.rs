@@ -22,6 +22,7 @@
 
 use crate::{
     base_node::{
+        chain_metadata_service::ChainMetadataHandle,
         comms_interface::{
             Broadcast,
             CommsInterfaceError,
@@ -148,6 +149,7 @@ pub struct BaseNodeService<B> {
     timeout_sender: Sender<RequestKey>,
     timeout_receiver_stream: Option<Receiver<RequestKey>>,
     config: BaseNodeServiceConfig,
+    chain_metadata_service: ChainMetadataHandle,
 }
 
 impl<B> BaseNodeService<B>
@@ -157,6 +159,7 @@ where B: BlockchainBackend + 'static
         outbound_message_service: OutboundMessageRequester,
         inbound_nch: InboundNodeCommsHandlers<B>,
         config: BaseNodeServiceConfig,
+        chain_metadata_service: ChainMetadataHandle,
     ) -> Self
     {
         let (timeout_sender, timeout_receiver) = channel(100);
@@ -167,6 +170,7 @@ where B: BlockchainBackend + 'static
             timeout_sender,
             timeout_receiver_stream: Some(timeout_receiver),
             config,
+            chain_metadata_service,
         }
     }
 
@@ -304,8 +308,9 @@ where B: BlockchainBackend + 'static
     fn spawn_handle_incoming_request(&self, domain_msg: DomainMessage<proto::base_node::BaseNodeServiceRequest>) {
         let inbound_nch = self.inbound_nch.clone();
         let outbound_message_service = self.outbound_message_service.clone();
+        let chain_metadata_handle = self.chain_metadata_service.clone();
         task::spawn(async move {
-            let _ = handle_incoming_request(inbound_nch, outbound_message_service, domain_msg)
+            let _ = handle_incoming_request(inbound_nch, outbound_message_service, chain_metadata_handle, domain_msg)
                 .await
                 .or_else(|err| {
                     error!(
@@ -398,6 +403,7 @@ where B: BlockchainBackend + 'static
 async fn handle_incoming_request<B: BlockchainBackend + 'static>(
     inbound_nch: InboundNodeCommsHandlers<B>,
     mut outbound_message_service: OutboundMessageRequester,
+    mut chain_metadata_handle: ChainMetadataHandle,
     domain_request_msg: DomainMessage<proto::BaseNodeServiceRequest>,
 ) -> Result<(), BaseNodeServiceError>
 {
@@ -412,9 +418,13 @@ async fn handle_incoming_request<B: BlockchainBackend + 'static>(
         .handle_request(&request.try_into().map_err(BaseNodeServiceError::InvalidRequest)?)
         .await?;
 
+    // Determine if we are synced
+    let chain_metadata_received = chain_metadata_handle.full_round_of_metadata_received().await?;
+
     let message = proto::BaseNodeServiceResponse {
         request_key: inner_msg.request_key,
         response: Some(response.into()),
+        is_synced: false,
     };
 
     trace!(
@@ -472,7 +482,11 @@ async fn handle_incoming_response(
     incoming_response: proto::BaseNodeServiceResponse,
 ) -> Result<(), BaseNodeServiceError>
 {
-    let proto::BaseNodeServiceResponse { request_key, response } = incoming_response;
+    let proto::BaseNodeServiceResponse {
+        request_key,
+        response,
+        is_synced,
+    } = incoming_response;
     let response: NodeCommsResponse = response
         .and_then(|r| r.try_into().ok())
         .ok_or_else(|| BaseNodeServiceError::InvalidResponse("Received an invalid base node response".to_string()))?;
@@ -480,10 +494,11 @@ async fn handle_incoming_response(
     if let Some((reply_tx, started)) = waiting_requests.remove(request_key).await {
         trace!(
             target: LOG_TARGET,
-            "Response for {} (request key: {}) received after {}ms",
+            "Response for {} (request key: {}) received after {}ms and is_synced: {}",
             response,
             &request_key,
-            started.elapsed().as_millis()
+            started.elapsed().as_millis(),
+            is_synced
         );
         let _ = reply_tx.send(Ok(response).or_else(|resp| {
             warn!(
