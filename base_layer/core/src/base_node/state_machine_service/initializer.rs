@@ -98,8 +98,9 @@ where B: BlockchainBackend + 'static
     {
         let (state_event_publisher, state_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(10, 3);
         let (status_event_publisher, status_event_subscriber): (Publisher<_>, Subscriber<_>) = bounded(1, 4); // only latest update is important
+        let shutdown = Shutdown::new();
 
-        let handle = StateMachineHandle::new(state_event_subscriber, status_event_subscriber);
+        let handle = StateMachineHandle::new(state_event_subscriber, status_event_subscriber, shutdown.to_signal());
         handles_fut.register(handle);
 
         let factories = self.factories.clone();
@@ -139,6 +140,7 @@ where B: BlockchainBackend + 'static
                 state_machine_config,
                 sync_validators,
                 interrupt_signal,
+                shutdown,
                 status_event_publisher,
                 state_event_publisher,
             );

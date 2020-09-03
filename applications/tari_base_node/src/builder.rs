@@ -183,6 +183,7 @@ impl BaseNodeContext {
             miner.mine().await;
             info!(target: LOG_TARGET, "⚒️ Miner has shutdown");
         });
+        self.state_machine().shutdown_signal().await;
         info!(target: LOG_TARGET, "Initiating communications stack shutdown");
         future::join(self.base_node_comms.shutdown(), self.wallet_comms.shutdown()).await;
     }
@@ -216,6 +217,13 @@ impl BaseNodeContext {
     /// Returns the wallet CommsNode.
     pub fn wallet_comms(&self) -> &CommsNode {
         &self.wallet_comms
+    }
+
+    /// Returns the wallet CommsNode.
+    pub fn state_machine(&self) -> StateMachineHandle {
+        self.base_node_handles
+            .get_handle::<StateMachineHandle>()
+            .expect("Could not get State Machine handle")
     }
 
     /// Returns this node's identity.
@@ -497,7 +505,7 @@ where
             .block_sync_strategy
             .parse()
             .expect("Problem reading block sync strategy from config"),
-        interrupt_signal,
+        interrupt_signal.clone(),
     )
     .await;
     debug!(target: LOG_TARGET, "Base node service registration complete.");
@@ -588,7 +596,7 @@ where
     let mempool_event_stream = local_mp_interface.get_mempool_state_event_stream();
     let miner = miner::build_miner(
         &base_node_handles,
-        base_node_comms.shutdown_signal(),
+        interrupt_signal,
         node_event_stream,
         mempool_event_stream,
         rules,

@@ -44,7 +44,7 @@ use log::*;
 use std::{future::Future, sync::Arc};
 use tari_broadcast_channel::{Publisher, Subscriber};
 use tari_comms::{connectivity::ConnectivityRequester, PeerManager};
-use tari_shutdown::ShutdownSignal;
+use tari_shutdown::{Shutdown, ShutdownSignal};
 
 const LOG_TARGET: &str = "c::bn::base_node";
 
@@ -86,6 +86,7 @@ pub struct BaseNodeStateMachine<B> {
     status_event_publisher: Publisher<StatusInfo>,
     event_publisher: Publisher<StateEvent>,
     interrupt_signal: ShutdownSignal,
+    shutdown_trigger: Shutdown,
 }
 
 impl<B: BlockchainBackend + 'static> BaseNodeStateMachine<B> {
@@ -100,7 +101,8 @@ impl<B: BlockchainBackend + 'static> BaseNodeStateMachine<B> {
         metadata_event_stream: Subscriber<ChainMetadataEvent>,
         config: BaseNodeStateMachineConfig,
         sync_validators: SyncValidators,
-        shutdown_signal: ShutdownSignal,
+        interrupt_signal: ShutdownSignal,
+        shutdown_trigger: Shutdown,
         status_event_publisher: Publisher<StatusInfo>,
         event_publisher: Publisher<StateEvent>,
     ) -> Self
@@ -112,12 +114,13 @@ impl<B: BlockchainBackend + 'static> BaseNodeStateMachine<B> {
             peer_manager,
             connectivity,
             metadata_event_stream,
-            interrupt_signal: shutdown_signal,
+            interrupt_signal,
             config,
             info: StatusInfo::StartUp,
             event_publisher,
             status_event_publisher,
             sync_validators,
+            shutdown_trigger,
         }
     }
 

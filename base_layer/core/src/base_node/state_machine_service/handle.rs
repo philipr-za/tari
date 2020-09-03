@@ -23,22 +23,26 @@
 use crate::base_node::state_machine_service::states::{StateEvent, StatusInfo};
 use futures::{stream::Fuse, StreamExt};
 use tari_broadcast_channel::Subscriber;
+use tari_shutdown::ShutdownSignal;
 
 #[derive(Clone)]
 pub struct StateMachineHandle {
     state_change_event_subscriber: Subscriber<StateEvent>,
     status_event_subscriber: Subscriber<StatusInfo>,
+    shutdown_signal: ShutdownSignal,
 }
 
 impl StateMachineHandle {
     pub fn new(
         state_change_event_subscriber: Subscriber<StateEvent>,
         status_event_subscriber: Subscriber<StatusInfo>,
+        shutdown_signal: ShutdownSignal,
     ) -> Self
     {
         Self {
             state_change_event_subscriber,
             status_event_subscriber,
+            shutdown_signal,
         }
     }
 
@@ -62,5 +66,9 @@ impl StateMachineHandle {
 
     pub fn get_status_event_stream_fused(&self) -> Fuse<Subscriber<StatusInfo>> {
         self.get_status_event_stream().fuse()
+    }
+
+    pub fn shutdown_signal(&self) -> ShutdownSignal {
+        self.shutdown_signal.clone()
     }
 }
