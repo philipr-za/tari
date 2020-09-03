@@ -36,6 +36,7 @@ use crate::{
             },
         },
         validators::SyncValidators,
+        StateMachineHandle,
     },
     chain_storage::{BlockchainBackend, BlockchainDatabase},
 };
@@ -87,6 +88,7 @@ pub struct BaseNodeStateMachine<B> {
     event_publisher: Publisher<StateEvent>,
     interrupt_signal: ShutdownSignal,
     shutdown_trigger: Shutdown,
+    pub(crate) state_machine: StateMachineHandle,
 }
 
 impl<B: BlockchainBackend + 'static> BaseNodeStateMachine<B> {
@@ -105,6 +107,7 @@ impl<B: BlockchainBackend + 'static> BaseNodeStateMachine<B> {
         shutdown_trigger: Shutdown,
         status_event_publisher: Publisher<StatusInfo>,
         event_publisher: Publisher<StateEvent>,
+        state_machine: StateMachineHandle,
     ) -> Self
     {
         Self {
@@ -121,6 +124,7 @@ impl<B: BlockchainBackend + 'static> BaseNodeStateMachine<B> {
             status_event_publisher,
             sync_validators,
             shutdown_trigger,
+            state_machine,
         }
     }
 

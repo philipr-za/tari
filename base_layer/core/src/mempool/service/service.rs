@@ -25,6 +25,7 @@ use crate::{
         comms_interface::{BlockEvent, BlockEventReceiver},
         generate_request_key,
         RequestKey,
+        StateMachineHandle,
         WaitingRequests,
     },
     chain_storage::BlockchainBackend,
@@ -109,6 +110,7 @@ pub struct MempoolService<B: BlockchainBackend + 'static> {
     timeout_sender: Sender<RequestKey>,
     timeout_receiver_stream: Option<Receiver<RequestKey>>,
     config: MempoolServiceConfig,
+    state_machine: StateMachineHandle,
 }
 
 impl<B> MempoolService<B>
@@ -118,6 +120,7 @@ where B: BlockchainBackend + 'static
         outbound_message_service: OutboundMessageRequester,
         inbound_handlers: MempoolInboundHandlers<B>,
         config: MempoolServiceConfig,
+        state_machine: StateMachineHandle,
     ) -> Self
     {
         let (timeout_sender, timeout_receiver) = channel(100);
@@ -128,6 +131,7 @@ where B: BlockchainBackend + 'static
             timeout_sender,
             timeout_receiver_stream: Some(timeout_receiver),
             config,
+            state_machine,
         }
     }
 
@@ -290,6 +294,15 @@ where B: BlockchainBackend + 'static
     }
 
     fn spawn_handle_incoming_tx(&self, tx_msg: DomainMessage<Transaction>) {
+        if !self.state_machine.get_initial_blockchain_sync_success_status() {
+            debug!(
+                target: LOG_TARGET,
+                "Transaction with Message {} from peer `{}` not processed while busy with initial sync.",
+                tx_msg.dht_header.message_tag,
+                tx_msg.source_peer.node_id.short_str(),
+            );
+            return;
+        }
         let inbound_handlers = self.inbound_handlers.clone();
         task::spawn(async move {
             let _ = handle_incoming_tx(inbound_handlers, tx_msg).await.or_else(|err| {

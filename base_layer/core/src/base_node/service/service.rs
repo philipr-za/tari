@@ -35,6 +35,7 @@ use crate::{
         proto,
         service::error::BaseNodeServiceError,
         RequestKey,
+        StateMachineHandle,
         WaitingRequests,
     },
     blocks::{Block, NewBlock},
@@ -150,6 +151,7 @@ pub struct BaseNodeService<B> {
     timeout_receiver_stream: Option<Receiver<RequestKey>>,
     config: BaseNodeServiceConfig,
     chain_metadata_service: ChainMetadataHandle,
+    state_machine: StateMachineHandle,
 }
 
 impl<B> BaseNodeService<B>
@@ -160,6 +162,7 @@ where B: BlockchainBackend + 'static
         inbound_nch: InboundNodeCommsHandlers<B>,
         config: BaseNodeServiceConfig,
         chain_metadata_service: ChainMetadataHandle,
+        state_machine: StateMachineHandle,
     ) -> Self
     {
         let (timeout_sender, timeout_receiver) = channel(100);
@@ -171,6 +174,7 @@ where B: BlockchainBackend + 'static
             timeout_receiver_stream: Some(timeout_receiver),
             config,
             chain_metadata_service,
+            state_machine,
         }
     }
 
@@ -350,6 +354,15 @@ where B: BlockchainBackend + 'static
     }
 
     fn spawn_handle_incoming_block(&self, new_block: DomainMessage<NewBlock>) {
+        if !self.state_machine.get_initial_blockchain_sync_success_status() {
+            debug!(
+                target: LOG_TARGET,
+                "Propagated block `{}` from peer `{}` not processed while busy with initial sync.",
+                new_block.inner.block_hash.to_hex(),
+                new_block.source_peer.node_id.short_str(),
+            );
+            return;
+        }
         let inbound_nch = self.inbound_nch.clone();
         task::spawn(async move {
             let _ = handle_incoming_block(inbound_nch, new_block).await.or_else(|err| {

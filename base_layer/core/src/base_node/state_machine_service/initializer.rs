@@ -122,6 +122,9 @@ where B: BlockchainBackend + 'static
             let node_local_interface = handles
                 .get_handle::<LocalNodeCommsInterface>()
                 .expect("Problem getting node local interface handle.");
+            let state_machine = handles
+                .get_handle::<StateMachineHandle>()
+                .expect("Problem getting StateMachineHandle");
 
             let mut state_machine_config = BaseNodeStateMachineConfig::default();
             state_machine_config.block_sync_config.sync_strategy = sync_strategy;
@@ -143,6 +146,7 @@ where B: BlockchainBackend + 'static
                 shutdown,
                 status_event_publisher,
                 state_event_publisher,
+                state_machine,
             );
 
             node.run().await;

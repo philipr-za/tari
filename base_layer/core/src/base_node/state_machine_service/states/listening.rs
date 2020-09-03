@@ -88,6 +88,11 @@ impl Listening {
                         let sync_peers = select_sync_peers(local_tip_height, &best_metadata, &peer_metadata_list);
 
                         let sync_mode = determine_sync_mode(&local, best_metadata, sync_peers);
+                        if sync_mode == SyncStatus::UpToDate &&
+                            !shared.state_machine.get_initial_blockchain_sync_success_status()
+                        {
+                            shared.state_machine.set_initial_blockchain_sync_success_status(true);
+                        }
                         if sync_mode.is_lagging() {
                             debug!(target: LOG_TARGET, "{}", sync_mode);
                             return StateEvent::FallenBehind(sync_mode);

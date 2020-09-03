@@ -26,6 +26,7 @@ use crate::{
         comms_interface::{InboundNodeCommsHandlers, LocalNodeCommsInterface, OutboundNodeCommsInterface},
         proto,
         service::service::{BaseNodeService, BaseNodeServiceConfig, BaseNodeStreams},
+        StateMachineHandle,
     },
     blocks::NewBlock,
     chain_storage::{BlockchainBackend, BlockchainDatabase},
@@ -194,6 +195,10 @@ where T: BlockchainBackend + 'static
                 .get_handle::<ChainMetadataHandle>()
                 .expect("ChainMetadata handle required for BaseNodeService");
 
+            let state_machine = handles
+                .get_handle::<StateMachineHandle>()
+                .expect("StateMachineHandle required to initialize MempoolService");
+
             let streams = BaseNodeStreams::new(
                 outbound_request_stream,
                 outbound_block_stream,
@@ -203,8 +208,14 @@ where T: BlockchainBackend + 'static
                 local_request_stream,
                 local_block_stream,
             );
-            let service = BaseNodeService::new(outbound_message_service, inbound_nch, config, chain_metadata_handle)
-                .start(streams);
+            let service = BaseNodeService::new(
+                outbound_message_service,
+                inbound_nch,
+                config,
+                chain_metadata_handle,
+                state_machine,
+            )
+            .start(streams);
             futures::pin_mut!(service);
             future::select(service, shutdown).await;
             info!(target: LOG_TARGET, "Base Node Service shutdown");

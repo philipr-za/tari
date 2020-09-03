@@ -21,7 +21,9 @@
 // USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 use crate::base_node::state_machine_service::states::{StateEvent, StatusInfo};
+use core::sync::atomic::{AtomicBool, Ordering};
 use futures::{stream::Fuse, StreamExt};
+use std::sync::Arc;
 use tari_broadcast_channel::Subscriber;
 use tari_shutdown::ShutdownSignal;
 
@@ -30,6 +32,7 @@ pub struct StateMachineHandle {
     state_change_event_subscriber: Subscriber<StateEvent>,
     status_event_subscriber: Subscriber<StatusInfo>,
     shutdown_signal: ShutdownSignal,
+    initial_blockchain_sync_success: Arc<AtomicBool>,
 }
 
 impl StateMachineHandle {
@@ -43,6 +46,7 @@ impl StateMachineHandle {
             state_change_event_subscriber,
             status_event_subscriber,
             shutdown_signal,
+            initial_blockchain_sync_success: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -70,5 +74,15 @@ impl StateMachineHandle {
 
     pub fn shutdown_signal(&self) -> ShutdownSignal {
         self.shutdown_signal.clone()
+    }
+
+    /// This lets any interested party update the the initial blockchain sync status
+    pub fn set_initial_blockchain_sync_success_status(&self, status: bool) {
+        self.initial_blockchain_sync_success.store(status, Ordering::Relaxed);
+    }
+
+    /// This lets any interested party know if the initial blockchain sync has been successful or not
+    pub fn get_initial_blockchain_sync_success_status(&self) -> bool {
+        self.initial_blockchain_sync_success.load(Ordering::SeqCst)
     }
 }
