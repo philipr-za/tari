@@ -148,11 +148,22 @@ Then(/node (.*) is at height (\d+)/, {timeout: 120*1000}, async function (name, 
     expect(await client.getTipHeight()).to.equal(height);
 });
 
-Then('all nodes are at height {int}', {timeout: 120*1000},async function (height) {
+Then('all nodes are at height {int}', {timeout: 1200*1000},async function (height) {
     await this.forEachClientAsync(async (client, name) => {
         await waitFor(async() => client.getTipHeight(), height, 115*1000);
         const currTip = await client.getTipHeight();
         console.log(`Node ${name} is at tip: ${currTip} (should be ${height})`);
+        expect(currTip).to.equal(height);
+    })
+});
+
+Then('all nodes are at current tip height', {timeout: 1200*1000},async function () {
+    let height = parseInt(this.tipHeight);
+    console.log("Wait for all nodes to reach height of", height);
+    await this.forEachClientAsync(async (client, name) => {
+        await waitFor(async() => client.getTipHeight(), height, 115*1000);
+        const currTip = await client.getTipHeight();
+        console.log(`Node ${name} is at tip: ${currTip} (should be`, height, `)`);
         expect(currTip).to.equal(height);
     })
 });
@@ -222,6 +233,7 @@ When(/I mine (\d+) blocks on (.*)/, {timeout: 600*1000}, async function (numBloc
     for(let i=0;i<numBlocks;i++) {
         await this.mineBlock(name);
     }
+    this.tipHeight += parseInt(numBlocks);
 });
 
 When(/I mine (\d+) blocks using wallet (.*) on (.*)/, {timeout: 600*1000}, async function (numBlocks, walletName,nodeName) {
@@ -236,6 +248,7 @@ When(/I merge mine (.*) blocks via (.*)/, {timeout: 600*1000}, async function (n
     for(let i=0;i<numBlocks;i++) {
         await this.mergeMineBlock(mmProxy);
     }
+    this.tipHeight += parseInt(numBlocks);
 });
 
 
@@ -314,7 +327,7 @@ When(/I wait for wallet (.*) to have at least (.*) tari/, {timeout: 250*1000}, a
     console.log("Waiting for " + wallet + " balance to be at least " + amount + " uT");
     let balance = await walletClient.getBalance();
     consoleLogBalance(balance);
-    if (balance["available_balance"] < amount) {
+    if (parseInt(balance["available_balance"]) < parseInt(amount)) {
         await waitFor(async() => walletClient.isBalanceAtLeast(amount), true, 240*1000, 5*1000, 5);
         if (!walletClient.isBalanceAtLeast(amount)) {
             console.log("Balance not adequate!");
@@ -836,26 +849,36 @@ Then('difficulties are available', function () {
 
 });
 
-When(/I coin split tari in wallet (.*) to produce (.*) UTXOs of (.*) uT each with fee_per_gram (.*) uT/, {timeout: 25*5*1000}, async function (walletName, splitNum, splitValue, feePerGram) {
+When(/I coin split tari in wallet (.*) to produce (.*) UTXOs of (.*) uT each with fee_per_gram (.*) uT/, {timeout: 4800*1000}, async function (walletName, splitNum, splitValue, feePerGram) {
     console.log("\n");
+    let numberOfSplits = Math.ceil(splitNum/499);
+    let splitsLeft = splitNum;
+
     let wallet = this.getWallet(walletName)
     let walletClient = wallet.getClient();
     let walletInfo = await walletClient.identify();
-    let result = await walletClient.coin_split(
-        {
-            "amount_per_split": splitValue,
-            "split_count": splitNum,
-            "fee_per_gram": feePerGram,
-            "message": "Cucumber coinsplit",
-            "lockheight": 0,
-        }
-    );
-    console.log("Coin split to produce", splitNum, "values of", splitValue, "uT completed with TxId: ", result);
-    this.addTransaction(walletInfo["public_key"], result["tx_id"]);
-    this.lastResult = result;
+
+    console.log("Performing", numberOfSplits, "coin splits to produce", splitNum, "outputs of", splitValue,"uT");
+
+    for (let i = 0; i<numberOfSplits; i++) {
+        let splits = Math.min(499, splitsLeft);
+        splitsLeft -= splits;
+        let result = await walletClient.coin_split(
+            {
+                "amount_per_split": splitValue,
+                "split_count": splits,
+                "fee_per_gram": feePerGram,
+                "message": "Cucumber coinsplit",
+                "lockheight": 0,
+            }
+        );
+        console.log("Coin split", (i+1), "/", numberOfSplits, " completed with TxId: ", result);
+        this.addTransaction(walletInfo["public_key"], result["tx_id"]);
+        this.lastResult = result;
+    }
 });
 
-When(/I send (.*) transactions of (.*) uT each from wallet (.*) to wallet (.*) at fee_per_gram (.*)/, {timeout: 25*5*1000}, async function (numTransactions, amount, sourceWallet, dest, fee) {
+When(/I send (.*) transactions of (.*) uT each from wallet (.*) to wallet (.*) at fee_per_gram (.*)/, {timeout: 5000*1000}, async function (numTransactions, amount, sourceWallet, dest, fee) {
     console.log("\n");
     let sourceWalletClient = this.getWallet(sourceWallet).getClient();
     let sourceInfo = await sourceWalletClient.identify();
