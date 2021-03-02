@@ -9,7 +9,8 @@ Feature: Stress Test
         And I have wallet WALLET_A connected to seed node NODE1
         And I have wallet WALLET_B connected to seed node NODE2
         And I have a merge mining proxy PROXY connected to NODE1 and WALLET_A
-        When I merge mine 3 blocks via PROXY
+        When I merge mine 6 blocks via PROXY
+        # There need to be at least as many mature coinbase UTXOs in the wallet coin splits required for the number of transactions
         When I merge mine <NumCoinsplitsNeeded> blocks via PROXY
         Then all nodes are at current tip height
         When I wait for wallet WALLET_A to have at least 5100000000 tari
@@ -31,10 +32,10 @@ Feature: Stress Test
         Then while mining via NODE1 all transactions in wallet WALLET_B are found to be Mined_Confirmed
         Examples:
             | NumTransactions   | NumCoinsplitsNeeded   | NumNodes  |
-            | 10                | 1                     | 5         |
-            | 100               | 1                     | 5         |
-            | 1000              | 3                     | 5         |
-            | 10000             | 20                    | 5         |
+            | 10                | 1                     | 3         |
+            | 100               | 1                     | 3         |
+            | 1000              | 3                     | 3         |
+            | 10000             | 21                    | 3         |
 
     @long-running
     Scenario: Simple Stress Test
