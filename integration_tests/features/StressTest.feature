@@ -6,8 +6,8 @@ Feature: Stress Test
         Given I have a seed node NODE1
         And I have a seed node NODE2
         And I have <NumNodes> base nodes connected to all seed nodes
-        And I have wallet WALLET_A connected to seed node NODE1
-        And I have wallet WALLET_B connected to seed node NODE2
+        And I have stress-test wallet WALLET_A connected to the seed node NODE1 with broadcast monitoring timeout 30
+        And I have stress-test wallet WALLET_B connected to the seed node NODE2 with broadcast monitoring timeout 30
         And I have a merge mining proxy PROXY connected to NODE1 and WALLET_A
         When I merge mine 6 blocks via PROXY
         # There need to be at least as many mature coinbase UTXOs in the wallet coin splits required for the number of transactions
